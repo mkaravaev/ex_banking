@@ -1,4 +1,6 @@
 defmodule ExBanking do
+  alias ExBanking.{UserSupervisor, User}
+
   @moduledoc """
   Documentation for ExBanking.
   """
@@ -8,8 +10,8 @@ defmodule ExBanking do
 
   ## Examples
 
-      iex> ExBanking.hello
-      :world
+      # iex> ExBanking.hello
+      # :world
 
   """
 
@@ -29,8 +31,13 @@ defmodule ExBanking do
   }
 
   @spec create_user(user) :: :ok | banking_error
-  def create_user(user) do
+  def create_user(user) when is_binary(user) do
+    case UserSupervisor.new_user(name: user) do
+      {:ok, _} -> :ok
+      {:error, error} -> {:error, error}
+    end
   end
+  def create_user(_), do: {:error, :wrong_arguments}
 
   @spec deposit(user, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
   def deposit(user, amount, currency) do
@@ -42,6 +49,7 @@ defmodule ExBanking do
 
   @spec get_balance(user, currency) :: {:ok, balance :: number} | banking_error
   def get_balance(user, currency) do
+    User.balance(user, currency)
   end
 
   @spec send(from_user :: String.t, to_user :: String.t, amount, currency) :: {:ok, from_user_balance_number :: number, to_user_balance_number :: number} | banking_error

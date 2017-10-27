@@ -7,13 +7,12 @@ defmodule ExBanking.UserSupervisor do
 
   def init(:ok) do
     children = [
-      {ExBanking.User, restart: :temporary}
+      {ExBanking.User, []}
     ]
-
     Supervisor.init(children, strategy: :simple_one_for_one)
   end
 
   def new_user(user) do
-    Supervisor.start_child(ExBanking.UserSupervisor, [user])
+    Supervisor.start_child(ExBanking.UserSupervisor, user)
   end
 end

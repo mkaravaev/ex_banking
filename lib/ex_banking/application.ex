@@ -10,6 +10,7 @@ defmodule ExBanking.Application do
     children = [
       # Starts a worker by calling: ExBanking.Worker.start_link(arg)
       # {ExBanking.Worker, arg},
+      {Registry, keys: :unique, name: Registry.Users},
       ExBanking.UserSupervisor
     ]
 
