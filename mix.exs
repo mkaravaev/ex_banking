@@ -7,6 +7,7 @@ defmodule ExBanking.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
+      elixirc_paths: elixir_paths(Mix.env),
       deps: deps()
     ]
   end
@@ -14,7 +15,7 @@ defmodule ExBanking.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :poolboy],
       mod: {ExBanking.Application, []}
     ]
   end
@@ -22,8 +23,12 @@ defmodule ExBanking.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      {:poolboy, "~> 1.5.1"},
+      {:decimal, "~> 1.4.1"}
     ]
-  end
+   end
+
+  defp elixir_paths(:test), do: ["lib", "test"]
+  defp elixir_paths(_), do: ["lib"]
+
 end

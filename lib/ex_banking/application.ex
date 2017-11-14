@@ -1,22 +1,28 @@
 defmodule ExBanking.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
 
   def start(_type, _args) do
-    # List all child processes to be supervised
     children = [
-      # Starts a worker by calling: ExBanking.Worker.start_link(arg)
-      # {ExBanking.Worker, arg},
+      ExBanking.UserSupervisor,
       {Registry, keys: :unique, name: Registry.Users},
-      ExBanking.UserSupervisor
+      :poolboy.child_spec(pool_name(), poolboy_conf(), [])
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExBanking.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp poolboy_conf do
+    [{:name, {:local, pool_name()}},
+      {:worker_module, ExBanking.UserWorker},
+      {:size, 10},
+      {:max_overflow, 0}]
+
+  end
+
+  def pool_name do
+    :user_worker
   end
 end
