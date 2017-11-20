@@ -1,11 +1,29 @@
 defmodule ExBanking.User do
   use GenServer
+  alias Registry.Users
 
+  #CLIENT
   def start_link(_, user) do
     case start_user(user) do
       {:error, {:already_started, _}} -> {:error, :user_already_exists}
       {:ok, pid} -> {:ok, pid}
     end
+  end
+
+  def get_balance(user, currency) do
+    perform(user, {:balance, currency})
+  end
+
+  def deposit(user, amount, currency) do
+    perform(user, {:deposit, amount, currency})
+  end
+
+  def withdraw(user, amount, currency) do
+    perform(user, {:withdraw, amount, currency})
+  end
+
+  def send(from_user, to_user, amount, currency) do
+    perform(from_user, {:send, to_user, amount, currency})
   end
 
   #SERVER
@@ -17,32 +35,24 @@ defmodule ExBanking.User do
     {:reply, {:ok, Map.get(acc, currency, 0)}, acc}
   end
 
-  def handle_info({:deposit, {amount, currency}, from}, acc) do
+  def handle_call({:deposit, amount, currency}, _from, acc) do
     new_acc = add_money(acc, amount, currency)
-    GenServer.reply(from, {:ok, new_acc})
-
-    {:noreply, new_acc}
+    {:reply, {:ok, new_acc}, new_acc}
   end
 
-  def handle_info({:withdraw, {withdraw_amount, currency}, from}, acc) do
+  def handle_call({:withdraw, amount, currency}, _from, acc) do
     currency_balance = Map.get(acc, currency, 0)
 
-    case extract_money(currency_balance, withdraw_amount, currency, acc) do
-
-      {:ok, new_acc, new_currency_balance} ->
-        GenServer.reply(from, {:ok, new_currency_balance})
-        {:noreply, new_acc}
-
-      {:error, error} ->
-        GenServer.reply(from, {:error, error})
-        {:noreply, acc}
+    case extract_money(currency_balance, amount, currency, acc) do
+      {:ok, new_acc, new_currency_balance} -> {:reply, {:ok, new_currency_balance}, new_acc}
+      {:error, error} -> {:reply, {:error, error}, acc}
     end
   end
 
-  def handle_info({:send, {to_pid, amount, currency}, from}, acc) do
-    [resp|[acc]] =
+  def handle_call({:send, to_user, amount, currency}, _from, acc) do
+    [resp|[new_acc]] =
       with true <- can_withdraw?(amount, currency, acc),
-           {:ok, receiver_new_balance} <- GenServer.call(to_pid, {:insert, {:deposit, {amount, currency}}}),
+           {:ok, receiver_new_balance} <- perform(to_user, {:deposit, amount, currency}),
            sender_new_acc <- Map.merge(acc, Map.new([{currency, Map.get(acc, currency, 0) - amount}])) do
         [{:ok, Map.get(sender_new_acc, currency), Map.get(receiver_new_balance, currency)}, sender_new_acc]
       else
@@ -51,14 +61,32 @@ defmodule ExBanking.User do
         {:error, error} -> [{:error, error}, acc]
       end
 
+    {:reply, resp, new_acc}
+  end
 
-    GenServer.reply(from, resp)
-    {:noreply, acc}
+  def perform(user, request) do
+    with {:ok, pid} <- user_exist?(user),
+         :ok <- limit_exceed?(pid) do
+      GenServer.call(pid, request)
+    else
+      err -> err
+    end
   end
 
   defp limit_exceed?(pid) do
     {_, length} = :erlang.process_info(pid, :message_queue_len)
-    length < 10
+
+    case length < 10 do
+      true -> :ok
+      false -> {:error, :too_many_reuests_to_user}
+    end
+  end
+
+  defp user_exist?(name) do
+    case Registry.lookup(Users, name) do
+      [] -> {:error, :user_does_not_exist}
+      [{pid, _}] -> {:ok, pid}
+    end
   end
 
   defp can_withdraw?(amount, currency, acc) do

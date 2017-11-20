@@ -1,20 +1,6 @@
 defmodule ExBanking do
   alias ExBanking.{UserSupervisor, User}
 
-  @moduledoc """
-  Documentation for ExBanking.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      # iex> ExBanking.hello
-      # :world
-
-  """
-
   @type user :: String.t
   @type currency :: String.t
   @type amount :: number
@@ -32,27 +18,27 @@ defmodule ExBanking do
 
   @spec create_user(user) :: :ok | banking_error
   def create_user(user) when is_binary(user) do
-    case UserSupervisor.new_user(name: user) do
-      {:ok, _} -> :ok
-      {:error, error} -> {:error, error}
-    end
+    UserSupervisor.new_user(user)
   end
   def create_user(_), do: {:error, :wrong_arguments}
 
   @spec deposit(user, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
   def deposit(user, amount, currency) do
+    User.deposit(user, amount, currency)
   end
 
   @spec withdraw(user :: String.t, amount, currency) :: {:ok, new_balance :: number} | banking_error
   def withdraw(user, amount, currency) do
+    User.withdraw(user, amount, currency)
   end
 
   @spec get_balance(user, currency) :: {:ok, balance :: number} | banking_error
   def get_balance(user, currency) do
-    User.balance(user, currency)
+    User.get_balance(user, currency)
   end
 
   @spec send(from_user :: String.t, to_user :: String.t, amount, currency) :: {:ok, from_user_balance_number :: number, to_user_balance_number :: number} | banking_error
   def send(from_user, to_user, amount, currency) do
+    User.send(from_user, to_user, amount, currency)
   end
 end
