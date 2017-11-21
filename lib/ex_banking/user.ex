@@ -36,7 +36,7 @@ defmodule ExBanking.User do
   end
 
   def send(from_user, to_user, amount, currency) do
-    with {:ok, from_pid} <- user_exist?(from_user) do
+    with {:ok, from_pid} <- user_exist?(from_user, role: "sender") do
       perform(from_pid, {:send, to_user, amount, currency})
     else
       err -> err
@@ -53,7 +53,7 @@ defmodule ExBanking.User do
   end
 
   def handle_call({:deposit, amount, currency}, _from, acc) do
-    new_acc = add_money(acc, amount, currency)
+    new_acc = add_money(acc, wrap(amount), currency)
     {:reply, {:ok, Map.get(new_acc, currency)}, new_acc}
   end
 
@@ -110,13 +110,6 @@ defmodule ExBanking.User do
     case Registry.lookup(Users, name) do
       [] -> {:error, make_user_not_exist_msg(opts)}
       [{pid, _}] -> {:ok, pid}
-    end
-  end
-
-  defp can_withdraw?(amount, currency, acc) do
-    case Map.get(acc, currency, 0) >= amount do
-      false -> {:error, :not_enough_money}
-      true -> true
     end
   end
 
