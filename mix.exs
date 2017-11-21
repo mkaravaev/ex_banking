@@ -15,7 +15,7 @@ defmodule ExBanking.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :poolboy],
+      extra_applications: [:logger],
       mod: {ExBanking.Application, []}
     ]
   end
@@ -23,7 +23,6 @@ defmodule ExBanking.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:poolboy, "~> 1.5.1"},
       {:decimal, "~> 1.4.1"}
     ]
    end
